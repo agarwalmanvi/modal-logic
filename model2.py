@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 import math
 from itertools import chain, combinations
+from pyeda.inter import *
 
 class Model:
 	def __init__(self):
@@ -72,7 +73,7 @@ class Model:
 			self.nodeList.remove(node)
 			del self.val[node]
 		else:
-			print "That node doesn't exist!"
+			print("That node doesn't exist!")
 			
 	def addEdge(self, u, v, agent):
 		if u in self.nodeList and v in self.nodeList and agent in self.agentList:
@@ -86,13 +87,14 @@ class Model:
 			for k in range(len(self.nodeList)):
 				for i in range(len(self.nodeList)):
 		         		for j in range(len(self.nodeList)):
-						self.rel[agent][i][j] = self.rel[agent][i][j] or (self.rel[agent][i][k] and self.rel[agent][k][j])
+		         			self.rel[agent][i][j] = self.rel[agent][i][j] or (self.rel[agent][i][k] and self.rel[agent][k][j])
 					
 	def addProp(self, node, prop):
 		if node in self.nodeList:
 			self.val[node].append(prop)
 		if prop not in self.propList:
 			self.propList.append(prop)
+		
 		
 	def addPropToAll(self, prop):
 		for i in self.nodeList:
@@ -143,9 +145,6 @@ class Model:
 			neg = list(np.setdiff1d(kns.knsV, pos))
 			for atomic in neg:
 				neg[neg.index(atomic)] = Not(atomic)
-			print node
-			print pos
-			print neg
 		
 		"""
 		for node in self.nodeList:
