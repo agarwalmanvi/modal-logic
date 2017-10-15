@@ -74,3 +74,29 @@ class Not(UnOp):
 	def v(self, model, world):
 		return not self.child.v(model, world)
 
+class EpistemicOp(Formula):
+	def __init__(self, agent, child):
+		self.agent = agent
+		self.child = child
+	def __str__(self):
+		return '(' + self.op + '_' + str(self.agent) + str(self.child) + ')'
+
+class K(EpistemicOp):
+	op = 'K'
+	def v(self, model, world):
+		nodes = []
+		for i in range(len(model.nodeList)):
+			if model.rel[self.agent][model.nodeList.index(world)][i] == 1:
+				nodes.append(model.nodeList[i])
+		print "All worlds reachable from", world," by agent", self.agent, ": ", nodes
+		return all(self.child.v(model, k) for k in nodes)
+
+class M(EpistemicOp):
+	op = 'M'
+	def v(self, model, world):
+		nodes = []
+		for i in range(len(model.nodeList)):
+			if model.rel[self.agent][model.nodeList.index(world)][i] == 1:
+				nodes.append(model.nodeList[i])
+		print "All worlds reachable from", world," by agent", self.agent, ": ", nodes
+		return any(self.child.v(model, k) for k in nodes)
