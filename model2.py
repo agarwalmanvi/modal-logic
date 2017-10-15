@@ -2,6 +2,7 @@ from modal2 import *
 from copy import deepcopy
 import numpy as np
 import math
+from itertools import chain, combinations
 
 class Model:
 	def __init__(self):
@@ -9,6 +10,7 @@ class Model:
 		self.mat = np.zeros((1,1))
 		self.val = dict()
 		self.worldsNum = 0
+		self.propList = []
 		
 		self.agentList = ['a']
 		self.rel = dict()
@@ -27,6 +29,10 @@ class Model:
 		self.onePart = []
 		self.l = []
 		self.obs = dict()
+		self.newprops = []
+		self.obsSets = dict()
+		self.agentStates = dict()
+		self.assignSubs = dict()
 		
 	def addNode(self):
 		self.nodeList.append(self.worldsNum)
@@ -85,21 +91,70 @@ class Model:
 	def addProp(self, node, prop):
 		if node in self.nodeList:
 			self.val[node].append(prop)
+		if prop not in self.propList:
+			self.propList.append(prop)
 		
 	def addPropToAll(self, prop):
 		for i in self.nodeList:
 			self.addProp(i, prop)
 			
-	def convertToKNS(self):
+	def convertToKNS(self,kns):
 		self.findConnected()
-		print self.parts
+		#print self.parts
 		self.l = [0]*len(self.agentList)
 		for i in self.parts.keys():
-			self.l[self.agentList.index(i)] = math.ceil(math.log(len(self.parts[i]),2))
+			self.l[self.agentList.index(i)] = int(math.ceil(math.log(len(self.parts[i]),2)))
 		for agent in self.agentList:
 			self.obs[agent] = []
+		prop_dict = dict()
+		for i in range(int(sum(self.l))):
+			atomStr = 'p'+str(i)
+			prop_dict[i] = Atom(atomStr)
+		for i in prop_dict.keys():
+			self.newprops.append(prop_dict[i])
+		for i in range(len(self.l)):
+			length = self.l[i]
+			agent = self.agentList[i]
+			for x in range(length):
+				self.obs[agent].append(self.newprops[0])
+				self.newprops.remove(self.newprops[0])
+		for agent in self.agentList:
+			variables = self.obs[agent]
+			self.obsSets[agent] = self.subsets(variables)
+		for agent in self.agentList:
+			self.assignSubs[agent] = dict()
+			partitions = self.parts[agent]
+			subsets = self.obsSets[agent]
+			for i in partitions:
+				self.assignSubs[agent][frozenset(i)] = subsets[partitions.index(i)]
+		for node in self.nodeList:
+			self.agentStates[node] = self.val[node]
+			nodeVar = []
+			for i in self.assignSubs.keys():
+				innerDict = self.assignSubs[i]
+				for k in innerDict.keys():
+					if node in list(k):
+						self.agentStates[node] = self.agentStates[node] + innerDict[k]
+		kns.knsV = self.propList
+		for agent in self.agentList:
+			kns.knsV = kns.knsV + self.obs[agent]
+		for node in self.nodeList:
+			pos = self.agentStates[node]
+			neg = list(np.setdiff1d(kns.knsV, pos))
+			for atomic in neg:
+				neg[neg.index(atomic)] = Not(atomic)
+			print node
+			print pos
+			print neg
 		
-	
+		"""
+		for node in self.nodeList:
+			self.agentStates[node] = dict()
+			for agent in self.agentList:
+				self.agentStates[node][agent] = []
+		
+			"""
+
 	def findConnected(self):	
 		for agent in self.agentList:
 			self.parts[agent] = []
@@ -119,10 +174,17 @@ class Model:
 			if self.matrix[self.nodeList.index(node)][self.nodeList.index(j)] == 1:
 				if self.visited[self.nodeList.index(j)] == 0:
 					self.DFSUtil(j)
+				
+	def powerset(self, iterable):
+	    s = list(iterable)
+	    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+
+	def subsets(self, s):
+	    return map(list, self.powerset(s))
 		
 class KNS:
 	def __init__(self):
-		self.V = []
+		self.knsV = []
 		self.obs = dict()
 		self.stateLaw = 'This stays empty for now'
 		
